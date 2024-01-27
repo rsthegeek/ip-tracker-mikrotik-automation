@@ -36,14 +36,24 @@ async fn update_interface_remote_address(url: &String, username: &String, passwo
   Ok(())
 }
 
-async fn get_current_ip() -> String {
-  let response = get("https://www.bonyadvokala.com/tmp/ip")
-  .await
-  .expect("Failed to send request");
+async fn get_current_ip() -> Result<String, Box<dyn std::error::Error>> {
+  let response = match get("https://www.bonyadvokala.com/tmp/ip").await {
+      Ok(resp) => resp,
+      Err(err) => {
+          eprintln!("Failed to send request: {}", err);
+          return Ok(String::new()); // Return empty string on error
+      }
+  };
 
-  return response.text()
-    .await
-    .expect("Failed to get response body");
+  let body = match response.text().await {
+      Ok(text) => text,
+      Err(err) => {
+          eprintln!("Failed to get response body: {}", err);
+          return Ok(String::new()); // Return empty string on error
+      }
+  };
+
+  Ok(body)
 }
 
 fn print_log(message :&str) {
@@ -64,7 +74,15 @@ async fn main() {
   let mut previous_ip = String::new();
 
   loop {
-    let ip = get_current_ip().await;
+    let ip = get_current_ip().await.unwrap_or_else(|_| {
+      String::new()
+    });
+
+    if ip.is_empty() {
+      print_log("Unable to find ip! skipping...");
+      thread::sleep(Duration::from_secs(sleep_duration_seconds));
+      continue;
+    }
 
     if !previous_ip.is_empty() && previous_ip != ip {
       print_log("IP address is changed!");
