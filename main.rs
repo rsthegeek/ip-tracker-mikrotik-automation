@@ -84,12 +84,13 @@ async fn main() {
       continue;
     }
 
+    print_log(&("current ip: ".to_owned() + &ip));
+
     if !previous_ip.is_empty() && previous_ip != ip {
-      print_log("IP address is changed!");
+      print_log("IP address is changed, calling the router api...");
       let _ = update_interface_remote_address(&url, &username, &password, &ip).await;
     }
 
-    print_log(&("current ip: ".to_owned() + &ip));
     previous_ip = ip;
 
     thread::sleep(Duration::from_secs(sleep_duration_seconds));
